@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ topic.name }}</title>
+    <style>
+        .answer {
+            margin-left: 20px;
+        }
+        .answer-form {
+            margin-left: 20px;
+        }
+        .question {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .vote-buttons {
+            margin-top: 10px;
+        }
+        .vote-buttons button {
+            margin-right: 10px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .question-content {
+            flex-grow: 1;
+        }
+        .vote-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        .vote-buttons form {
+            margin-bottom: 5px;
+        }
+        
+    </style>
+</head>
+<body>
+    <h1>Questions about {{ topic.title }}</h1>
+    <a href="{{ url_for('list_topics') }}">Return to Topics</a>
+    <br><br>
+
+
+    {% if similar_question %}
+    <div style="border: 2px solid #f00; padding: 10px; margin-bottom: 20px;">
+        <h2>Similar Question Found</h2>
+        <p><strong>{{ similar_question.content }}</strong></p>
+        <h3>Answers</h3>
+        {% if similar_question.answers %}
+            <ul>
+            {% for answer in similar_question.answers %}
+                <li>{{ answer.content }} - by {{ answer.user.username }}</li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p>No answers yet.</p>
+        {% endif %}
+        <p>Consider reviewing this question before submitting a new one.</p>
+    </div>
+    {% endif %}
+
+
+    {% if 'user_id' not in session or session['role'] != 'teacher' %}
+    <form method="post">
+        <textarea name="question" rows="5" cols="50" placeholder="Enter your question"></textarea>
+        <br>
+        <div id="related-questions">
+            <h3>Related Questions:</h3>
+            <!-- Related questions will be displayed here -->
+        </div>
+        <button type="submit">Submit</button>
+    </form>
+    {% endif %}
+
+    <div id="questions">
+        {% if questions_with_answers %}
+            <h2>Questions</h2>
+
+            {% for question, answers in questions_with_answers %}
+            <div class="container">
+                <h3>Question: </h3>
+                <div class="question-content">
+                    <p>{{ question.content }} - by <strong>{{ question.user.username }}</strong></p>
+                </div>
+
+                <div class="vote-buttons">
+                    <form action="{{ url_for('upvote', question_id=question.id) }}" method="post" style="display: inline;">
+                        <button type="submit">Upvote ({{ question.upvotes }})</button>
+                    </form>
+                    <form action="{{ url_for('downvote', question_id=question.id) }}" method="post" style="display: inline;">
+                        <button type="submit">Downvote ({{ question.downvotes }})</button>
+                    </form>
+                </div>
+
+                {% if current_user.role != 'teacher' %}
+                <button onclick="document.getElementById('comment-form-{{ question.id }}').style.display='block'">Comment</button>
+                {% endif %}
+
+                {% if current_user.role == 'teacher' %}
+                <button onclick="document.getElementById('answer-form-{{ question.id }}').style.display='block'">Answer</button>
+                {% endif %}
+            </div>
+
+            <!-- Hidden answer form -->
+            {% if current_user.role == 'teacher' %}
+            <div id="answer-form-{{ question.id }}" style="display:none;">
+                <form action="{{ url_for('answer_question', topic_id=topic.id, question_id=question.id) }}" method="POST">
+                    <textarea name="answer" placeholder="Type your answer here"></textarea>
+                    <button type="submit">Submit Answer</button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Display answers -->
+            {% if answers %}
+            <h3>Answer</h3>
+                <div class="answers">
+                    {% for answer in answers %}
+                    <div class="answer">
+                        <div class="container">
+                            <p>{{ answer.content }} - by {{ answer.user.username }}</p>
+                            {% if current_user.role == 'teacher' %}
+                            <!-- Delete button for teachers -->
+                            <form action="{{ url_for('delete_answer', topic_id=topic.id, answer_id=answer.id) }}" method="POST" style="display:inline;">
+                                <button type="submit" style="color: red;">Delete Answer</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Hidden comment form -->
+            <div id="comment-form-{{ question.id }}" style="display:none;">
+                <form action="{{ url_for('comment', question_id=question.id) }}" method="post">
+                    <textarea name="content" placeholder="Write your comment here" required></textarea>
+                    <button type="submit">Submit Comment</button>
+                </form>
+            </div>
+
+            <!-- Comments -->
+            {% set has_comments = question.comments|selectattr('approved')|list %}
+            {% if has_comments %}
+            <h3>Comments</h3>
+            <ul>
+                {% for comment in has_comments %}
+                <div class="container">
+                    <p>{{ comment.content }} - by {{ comment.author.username }}</p>
+                </div>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            
+            {% endfor %}
+        {% else %}
+            <p>No questions yet.</p>
+        {% endif %}
+    </div>
+
+
+    <script>
+        document.getElementById('question-form').addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent the form from submitting the traditional way
+        
+            const questionContent = document.getElementById('question-content').value;
+        
+            // Make an AJAX request to submit the form data
+            fetch('{{ url_for("topic_questions", topic_id=topic.id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    'question': questionContent
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Clear the textarea
+                    document.getElementById('question-content').value = '';
+        
+                    // Add the new question to the list of questions
+                    const questionsDiv = document.getElementById('questions');
+                    const newQuestionHtml = `
+                        <div class="container">
+                            <h3>Question:</h3>
+                            <div class="question-content">
+                                <p>${data.new_question.content}</p>
+                            </div>
+                            <!-- Insert your upvote, downvote, and answer/comment buttons here -->
+                        </div>
+                    `;
+                    questionsDiv.insertAdjacentHTML('beforeend', newQuestionHtml);
+                } else if (data.error) {
+                    alert(data.error);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+        
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+    $(document).ready(function(){
+        $('textarea[name="question"]').on('input', function(){
+            var input_text = $(this).val();
+            var topic_id = "{{ topic.id }}";
+            
+            if (input_text.length > 2) { // Start searching after 3 characters
+                $.ajax({
+                    type: 'POST',
+                    url: '/related_questions/' + topic_id,
+                    data: {'input_text': input_text},
+                    success: function(response){
+                        $('#related-questions').empty();
+                        if (response.length > 0) {
+                            response.forEach(function(question) {
+                                $('#related-questions').append(
+                                    '<p>' + question.content + '</p>'
+                                );
+                            });
+                        } else {
+                            $('#related-questions').append(
+                                '<p>No similar questions found.</p>'
+                            );
+                        }
+                    }
+                });
+            } else {
+                $('#related-questions').empty(); // Clear recommendations if input is short
+            }
+        });
+    });
+    </script>
+</body>
+
+
+</html>

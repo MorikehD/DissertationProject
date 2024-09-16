@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Answer Question</title>
+</head>
+<body>
+    <h1>{{ question.content }}</h1>
+    <a href="{{ url_for('topic_questions', topic_id=question.topic_id) }}">Return to Topic</a>
+    <br><br>
+    {% if session.role == 'teacher' %}
+    <form method="post">
+        <textarea name="answer" rows="5" cols="50" placeholder="Enter your answer"></textarea>
+        <br>
+        <button type="submit">Submit</button>
+    </form>
+    {% endif %}
+    <div id="answers">
+        {% if answers %}
+            <h2>Answers</h2>
+            {% for answer in answers %}
+            <div class="answer">
+                {{ answer.content }}
+            </div>
+            {% endfor %}
+        {% else %}
+            <p>No answers yet.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

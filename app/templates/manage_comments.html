@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Manage Comments</h1>
+
+
+  {% if comments %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Content</th>
+          <th>Question</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for comment in comments %}
+          <tr>
+            <td>{{ comment.id }}</td>
+            <td>{{ comment.content }}</td>
+            <td>{{ comment.question.title if comment.question else 'Unknown' }}</td>
+            <td>
+              <form action="{{ url_for('approve_comment', comment_id=comment.id) }}" method="post">
+                <button type="submit" class="btn btn-success">Approve</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No comments pending approval.</p>
+  {% endif %}
+{% endblock %}

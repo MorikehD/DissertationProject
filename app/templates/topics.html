@@ -1,0 +1,70 @@
+<!-- templates/topics.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Topics</title>
+    <style>
+        .topic {
+            margin-bottom: 20px;
+        }
+        .topic-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .topic-details {
+            flex: 1;
+        }
+        .topic-title {
+            font-weight: bold;
+        }
+        .topic-button {
+            margin-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Topics</h1>
+    <a href="{{ url_for('home') }}">Return to Homepage</a>
+    <br><br>
+    {% if is_teacher %}
+    <form method="post">
+        <div>
+            <input type="text" name="title" placeholder="Enter topic title" required>
+        </div>
+        <div>
+            <textarea name="description" rows="5" cols="50" placeholder="Enter topic description"></textarea>
+        </div>
+        <br>
+        <button type="submit">Submit</button>
+    </form>
+    <br>
+    {% endif %}
+    <div id="topics">
+        {% if topics %}
+            <h2>List of Topics</h2>
+            {% for topic in topics %}
+                <div class="topic-container">
+                    <div class="topic-details">
+                        <div class="topic-title"><h3>{{ topic.title }}</h3></div>
+                        <div class="topic-description"><p>{{ topic.description }}</p></div>
+                    </div>
+                    <div class="topic-button">
+                        <a href="{{ url_for('topic_questions', topic_id=topic.id) }}">
+                            <button>View Questions</button>
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No topics available.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
